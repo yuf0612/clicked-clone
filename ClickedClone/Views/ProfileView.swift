@@ -22,35 +22,36 @@ struct ProfileView: View {
                             Image(systemName: "person.circle.fill")
                                 .font(.system(size: 70))
                                 .foregroundStyle(AppConstants.brandGradient)
-                            Text(subscription.isPro ? "Clicked Pro 会员" : "免费用户")
+                            Text("Clicked · 全功能已解锁")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
+                            Text("所有功能免费使用，无次数限制")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
                         }
                         .padding(.top, 30)
 
-                        // Pro 卡片
-                        if !subscription.isPro {
-                            Button {
-                                showSubscription = true
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Label("解锁 Clicked Pro", systemImage: "crown.fill")
-                                            .font(.system(size: 17, weight: .bold))
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                    }
-                                    Text("无限引导拍摄 · 全部滤镜 · 无限美颜 · AI 风格")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white.opacity(0.8))
+                        // 全解锁说明卡片
+                        Button {
+                            showSubscription = true
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Label("全部功能已免费解锁", systemImage: "checkmark.seal.fill")
+                                        .font(.system(size: 17, weight: .bold))
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
                                 }
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(AppConstants.brandGradient)
-                                .cornerRadius(16)
+                                Text("无限引导拍摄 · 全部滤镜 · 无限美颜 · AI 风格")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.8))
                             }
-                            .padding(.horizontal)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(AppConstants.brandGradient)
+                            .cornerRadius(16)
                         }
+                        .padding(.horizontal)
 
                         // 设置列表
                         VStack(spacing: 0) {
@@ -60,17 +61,8 @@ struct ProfileView: View {
                                     .labelsHidden()
                             }
                             Divider().background(Color.white.opacity(0.1))
-                            SettingRow(icon: "arrow.triangle.2.circlepath", title: "恢复购买") {
-                                Button("恢复") {
-                                    Task { await subscription.restorePurchases() }
-                                }
-                                .foregroundColor(.pink).font(.system(size: 14))
-                            }
-                            if subscription.isPro {
-                                Divider().background(Color.white.opacity(0.1))
-                                SettingRow(icon: "crown", title: "当前方案") {
-                                    Text(subscription.activePlan).foregroundColor(.gray).font(.system(size: 12))
-                                }
+                            SettingRow(icon: "checkmark.seal", title: "会员状态") {
+                                Text("全功能免费版").foregroundColor(.gray).font(.system(size: 12))
                             }
                         }
                         .background(Color(white: 0.1))
