@@ -76,7 +76,7 @@ struct EditorView: View {
             Color.black.opacity(0.6).ignoresSafeArea()
             VStack(spacing: 16) {
                 ProgressView().tint(.yellow).scaleEffect(1.4)
-                Text("AI 正在处理…").foregroundColor(.white).font(.system(size: 15))
+                Text("智能处理中…").foregroundColor(.white).font(.system(size: 15))
                 Text("连不上服务时会自动切换本地效果（约 10 秒）").foregroundColor(.gray).font(.system(size: 12))
             }
             .padding(30)
@@ -157,7 +157,7 @@ struct EditorView: View {
                     }
 
                     VStack {
-                        Text("点选要移除的物体（已选 \(vm.removalPoints.count) 处）")
+                        Text("点选要移除的物体（已选 \(vm.removalPoints.count) 处，智能修复背景）")
                             .font(.system(size: 12)).foregroundColor(.white)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(Color.red.opacity(0.8)).cornerRadius(12)
@@ -299,7 +299,7 @@ struct EditorView: View {
     // MARK: - 美颜
     private var beautyView: some View {
         VStack(spacing: 10) {
-            Label("Beautify · 自然美颜", systemImage: "sparkles")
+            Label("自然美颜", systemImage: "sparkles")
                 .foregroundColor(.pink).font(.system(size: 13, weight: .semibold))
             AdjustSlider(title: "磨皮", value: vm.session?.beauty.smoothSkin ?? 0, range: 0...1) { vm.updateBeauty(\.smoothSkin, value: $0) }
             AdjustSlider(title: "亮眼", value: vm.session?.beauty.brightEyes ?? 0, range: 0...1) { vm.updateBeauty(\.brightEyes, value: $0) }
@@ -311,7 +311,7 @@ struct EditorView: View {
     private var aiView: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("AI 风格", systemImage: "wand.and.stars")
+                Label("智能风格", systemImage: "wand.and.stars")
                     .foregroundColor(.purple).font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Text("无限次使用")
