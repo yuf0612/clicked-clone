@@ -36,7 +36,7 @@ final class EditorViewModel: ObservableObject {
         case filters = "滤镜"
         case adjust = "调整"
         case beauty = "美颜"
-        case ai = "AI"
+        case ai = "智能"
         var id: String { rawValue }
     }
 
@@ -125,7 +125,7 @@ final class EditorViewModel: ObservableObject {
         }
         guard var s = session else { return }
 
-        if style == "None" {
+        if style == AIService.noneStyle {
             s.aiStyle = nil
             s.aiProcessedImage = nil
             s.isUsingLocalAI = false
@@ -143,7 +143,7 @@ final class EditorViewModel: ObservableObject {
 
         // 结果写回会话
         guard var final = session else { return }
-        final.aiProcessedImage = style == "None" ? nil : result
+        final.aiProcessedImage = style == AIService.noneStyle ? nil : result
         final.isProcessingAI = false
         final.isUsingLocalAI = usedLocal
         session = final
