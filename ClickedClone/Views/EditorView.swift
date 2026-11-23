@@ -314,10 +314,8 @@ struct EditorView: View {
                 Label("AI 风格", systemImage: "wand.and.stars")
                     .foregroundColor(.purple).font(.system(size: 13, weight: .semibold))
                 Spacer()
-                if !subscription.isPro {
-                    Text("今日剩余 \(AIService.shared.remainingFreeUses()) 次")
-                        .font(.system(size: 11)).foregroundColor(.gray)
-                }
+                Text("无限次使用")
+                    .font(.system(size: 11)).foregroundColor(.green)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
