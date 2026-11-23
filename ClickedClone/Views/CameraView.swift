@@ -344,7 +344,7 @@ struct CameraPreviewContainer: UIViewRepresentable {
     }
 }
 
-private final class CameraPreviewHostView: UIView {
+final class CameraPreviewHostView: UIView {
     private let layer_: AVCaptureVideoPreviewLayer
 
     init(previewLayer: AVCaptureVideoPreviewLayer) {
