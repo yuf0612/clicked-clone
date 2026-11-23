@@ -1,0 +1,9 @@
+# ClickedClone AI 后端依赖
+# 已在 Python 3.13 / Windows 上实测通过的版本（用阿里云源安装最快）
+# 安装命令：python -m pip install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
+fastapi>=0.115.0
+uvicorn>=0.30.0
+pydantic>=2.9.0
+opencv-python-headless>=4.10.0
+numpy>=1.26.0
+python-multipart>=0.0.9

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 相机权限：拍摄引导功能必须 -->
+    <key>NSCameraUsageDescription</key>
+    <string>ClickedClone 需要使用相机，为你提供样片叠加向导、实时拍摄指导和自动快门功能。</string>
+
+    <!-- 相册读取权限：选样片、选照片 -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>需要从相册选择参考样片或照片进行编辑。</string>
+
+    <!-- 相册写入权限：保存作品 -->
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>需要将编辑好的作品保存到你的相册。</string>
+
+    <!-- 麦克风权限（如后续加录像功能） -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>如使用视频拍摄功能，需要访问麦克风。</string>
+
+    <!-- 允许开发阶段访问本地 AI 后端（HTTP）。上架前删除并改用 HTTPS -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+
+    <!-- 屏幕方向：仅竖屏 -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+
+    <key>UILaunchScreen</key>
+    <dict/>
+
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleLightContent</string>
+</dict>
+</plist>

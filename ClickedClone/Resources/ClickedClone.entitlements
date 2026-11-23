@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- StoreKit 2 应用内购买不需要特殊 capability，保持空即可。
+	     若后续加入"域名关联 / 通用链接"等能力，再在此添加对应 key。 -->
+</dict>
+</plist>

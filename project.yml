@@ -1,0 +1,50 @@
+# ============================================================
+# XcodeGen 配置文件
+# 作用：描述整个 iOS 工程的结构，用 xcodegen 命令一键生成 .xcodeproj
+# 使用方法见 docs/07-Mac上运行上手手册.md
+# ============================================================
+name: ClickedClone
+
+options:
+  bundleIdPrefix: com.yourcompany          # 改成你自己的公司/个人标识
+  deploymentTarget:
+    iOS: "17.0"                            # 与 Clicked 一致，需 iPhone iOS 17+
+  groupSortPosition: top
+  createIntermediateGroups: true
+
+settings:
+  groups:
+    - Shared
+  configs:
+    Debug:
+      SWIFT_VERSION: "5.9"
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: ""                 # 有苹果开发者账号后填 Team ID
+      TARGETED_DEVICE_FAMILY: "1"          # 1 = 仅 iPhone
+      SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+      ENABLE_PREVIEWS: YES
+    Release:
+      SWIFT_VERSION: "5.9"
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: ""
+      TARGETED_DEVICE_FAMILY: "1"
+      SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+
+targets:
+  ClickedClone:
+    type: application
+    platform: iOS
+    sources:
+      - path: ClickedClone                 # 所有 Swift 源码都在这个目录
+    resources:
+      - path: ClickedClone/Resources/Assets.xcassets
+    settings:
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.clickedclone
+          INFOPLIST_FILE: ClickedClone/Resources/Info.plist
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.clickedclone
+          INFOPLIST_FILE: ClickedClone/Resources/Info.plist
+    entitlements:
+      path: ClickedClone/Resources/ClickedClone.entitlements

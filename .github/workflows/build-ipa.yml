@@ -1,0 +1,86 @@
+# ============================================================
+# GitHub Actions 云编译工作流
+# 作用：在 GitHub 免费的云 Mac 上把源码编译成未签名 IPA
+# 产出：未签名 IPA（下载后在本机用 Sideloadly + 免费 Apple ID 签名安装）
+#
+# 使用步骤（详见桌面手册）：
+#   1. 注册 GitHub 账号（免费）
+#   2. 把整个 ClickedClone 文件夹上传到新建的仓库
+#   3. 进入仓库 → Actions 标签 → 点 "Build ClickedClone IPA" → Run workflow
+#   4. 等约 5-10 分钟，编译完成后在本次运行页面底部下载 IPA (artifact)
+#   5. 本机装 Sideloadly，用免费 Apple ID 签名安装到 iPhone
+# ============================================================
+
+name: Build ClickedClone IPA
+
+# 只手动触发，避免每次推送都编译（省免费额度）
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15          # GitHub 云 Mac，预装 Xcode
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+
+      - name: 确认并选择 Xcode 版本
+        run: |
+          xcodebuild -version
+          # 固定到已验证支持 iOS 17 的 Xcode（避免云 Mac 升级导致意外失败）
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app
+          fi
+          xcodebuild -version
+
+      - name: 安装 XcodeGen
+        run: brew install xcodegen
+
+      - name: 生成 Xcode 工程文件
+        run: xcodegen generate
+
+      # 用时间戳生成唯一 bundle ID，避免免费 Apple ID 侧载时 ID 冲突
+      # 注意：Bundle ID 由 XcodeGen 的 build setting 控制，必须在 xcodebuild 命令行覆盖才生效
+      - name: 生成唯一 Bundle ID
+        run: |
+          UNIQUE_ID="com.clickedclone.$(date +%s)"
+          echo "使用 Bundle ID: $UNIQUE_ID"
+          echo "UNIQUE_ID=$UNIQUE_ID" >> $GITHUB_ENV
+
+      - name: 编译（不签名，供后续侧载）
+        run: |
+          xcodebuild \
+            -project ClickedClone.xcodeproj \
+            -scheme ClickedClone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ./build \
+            PRODUCT_BUNDLE_IDENTIFIER="$UNIQUE_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: 打包成未签名 IPA
+        run: |
+          APP_PATH="$(find ./build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -type d | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "未找到编译产物 .app，编译可能失败"
+            exit 1
+          fi
+          echo "找到 App: $APP_PATH"
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry ClickedClone-unsigned.ipa Payload
+          ls -lh ClickedClone-unsigned.ipa
+
+      - name: 上传 IPA 供下载
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClickedClone-unsigned-IPA
+          path: ClickedClone-unsigned.ipa
+          retention-days: 30
