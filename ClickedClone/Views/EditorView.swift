@@ -77,7 +77,7 @@ struct EditorView: View {
             VStack(spacing: 16) {
                 ProgressView().tint(.yellow).scaleEffect(1.4)
                 Text("AI 正在处理…").foregroundColor(.white).font(.system(size: 15))
-                Text("首次连接服务可能需要几秒").foregroundColor(.gray).font(.system(size: 12))
+                Text("连不上服务时会自动切换本地效果（约 10 秒）").foregroundColor(.gray).font(.system(size: 12))
             }
             .padding(30)
             .background(Color(white: 0.15))
