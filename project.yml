@@ -41,8 +41,10 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.clickedclone
           INFOPLIST_FILE: ClickedClone/Resources/Info.plist
+          GENERATE_INFOPLIST_FILE: NO
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: com.yourcompany.clickedclone
           INFOPLIST_FILE: ClickedClone/Resources/Info.plist
+          GENERATE_INFOPLIST_FILE: NO
     entitlements:
       path: ClickedClone/Resources/ClickedClone.entitlements
