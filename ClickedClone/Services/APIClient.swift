@@ -28,7 +28,8 @@ final class APIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = AppConstants.apiTimeout
         config.timeoutIntervalForResource = AppConstants.apiTimeout * 2
-        config.waitsForConnectivity = true
+        // 关键：连不上主机时立即失败，而不是无限挂起等待网络恢复
+        config.waitsForConnectivity = false
         self.session = URLSession(configuration: config)
         cache.countLimit = 30   // 最多缓存 30 张结果图
     }
@@ -42,49 +43,63 @@ final class APIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
 
-        var lastError: Error?
-        for attempt in 0...retry {
-            do {
-                let (data, response) = try await session.data(for: request)
-                guard let http = response as? HTTPURLResponse else { throw APIError.noData }
-                guard (200...299).contains(http.statusCode) else {
-                    // 尝试解析服务端错误信息
-                    if let errResp = try? JSONDecoder().decode([String: String].self, from: data),
-                       let msg = errResp["detail"] ?? errResp["error"] {
-                        throw APIError.serverMessage(msg)
+        // 墙钟超时：无论底层 URLSession 是否挂起，硬上限到点立即抛错，
+        // 让 AIService 走本地降级，避免界面永久停在"正在处理"。
+        let urlSession = self.session
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                // ===== 真实请求（含有限重试）=====
+                var lastError: Error?
+                for attempt in 0...retry {
+                    do {
+                        let (data, response) = try await urlSession.data(for: request)
+                        guard let http = response as? HTTPURLResponse else { throw APIError.noData }
+                        guard (200...299).contains(http.statusCode) else {
+                            if let errResp = try? JSONDecoder().decode([String: String].self, from: data),
+                               let msg = errResp["detail"] ?? errResp["error"] {
+                                throw APIError.serverMessage(msg)
+                            }
+                            throw APIError.httpStatus(http.statusCode)
+                        }
+                        do {
+                            return try JSONDecoder().decode(T.self, from: data)
+                        } catch let decodeError {
+                            throw APIError.decodingFailed(decodeError.localizedDescription)
+                        }
+                    } catch let error as APIError {
+                        if case .httpStatus(let code) = error, code < 500, code != 429 { throw error }
+                        if case .serverMessage = error { throw error }
+                        lastError = error
+                    } catch {
+                        lastError = error
                     }
-                    throw APIError.httpStatus(http.statusCode)
+
+                    if attempt < retry {
+                        let delay = UInt64(pow(2.0, Double(attempt)) * 500_000_000)
+                        try? await Task.sleep(nanoseconds: delay)
+                    }
                 }
-                do {
-                    return try JSONDecoder().decode(T.self, from: data)
-                } catch let decodeError {
-                    throw APIError.decodingFailed(decodeError.localizedDescription)
+
+                if let urlError = lastError as? URLError {
+                    switch urlError.code {
+                    case .timedOut: throw APIError.timeout
+                    case .notConnectedToInternet, .cannotConnectToHost, .networkConnectionLost:
+                        throw APIError.offline
+                    default: throw urlError
+                    }
                 }
-            } catch let error as APIError {
-                // 4xx 客户端错误不重试（重试也没用）
-                if case .httpStatus(let code) = error, code < 500, code != 429 { throw error }
-                if case .serverMessage = error { throw error }
-                lastError = error
-            } catch {
-                lastError = error
+                throw lastError ?? APIError.noData
             }
 
-            if attempt < retry {
-                // 指数退避：0.5s, 1s, 2s...
-                let delay = UInt64(pow(2.0, Double(attempt)) * 500_000_000)
-                try? await Task.sleep(nanoseconds: delay)
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(AppConstants.apiHardTimeout * 1_000_000_000))
+                throw APIError.timeout
             }
-        }
 
-        if let urlError = lastError as? URLError {
-            switch urlError.code {
-            case .timedOut: throw APIError.timeout
-            case .notConnectedToInternet, .cannotConnectToHost, .networkConnectionLost:
-                throw APIError.offline
-            default: throw urlError
-            }
+            guard let result = try await group.next() else { throw APIError.noData }
+            group.cancelAll()
+            return result
         }
-        throw lastError ?? APIError.noData
     }
 
     // MARK: - 健康检查
