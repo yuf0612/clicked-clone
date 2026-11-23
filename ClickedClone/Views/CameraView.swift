@@ -239,30 +239,60 @@ struct CameraView: View {
     // MARK: - 底部控制区
     private var bottomControls: some View {
         VStack(spacing: 18) {
-            // 功能标签行
-            HStack(spacing: 24) {
-                FeatureTag(icon: "doc.text.image", title: "样片跟拍", isOn: vm.overlayImage != nil)
-                FeatureTag(icon: "wand.and.rays", title: "场景指导", isOn: !vm.hints.isEmpty)
-                FeatureTag(icon: "faceid", title: "自动快门", isOn: vm.autoShutterEnabled)
+            // 功能标签行（可点击开关）
+            HStack(spacing: 10) {
+                // 样片跟拍：有样片时点击移除，无样片时提示去选
+                FeatureToggle(icon: "doc.text.image", title: "样片跟拍", isOn: vm.overlayImage != nil) {
+                    if vm.overlayImage != nil {
+                        vm.clearOverlay()
+                        photoItem = nil
+                    }
+                }
+                // 场景指导：真正可开关，开启后周期分析
+                FeatureToggle(icon: "wand.and.rays", title: "场景指导", isOn: vm.sceneGuideEnabled) {
+                    vm.toggleSceneGuide()
+                }
+                // 自动快门：与下方开关同步
+                FeatureToggle(icon: "faceid", title: "自动快门", isOn: vm.autoShutterEnabled) {
+                    vm.autoShutterEnabled.toggle()
+                }
             }
 
             // 主控制行
             HStack(spacing: 0) {
-                // 左：相册（打开选样片）—— 用一个 Button 直接设置 photoItem
-                PhotosPicker(selection: $photoItem, matching: .images) {
-                    VStack {
-                        if let thumb = vm.overlayImage {
-                            Image(uiImage: thumb).resizable().scaledToFill()
-                                .frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 8))
-                        } else {
-                            Image(systemName: "photo.on.rectangle")
-                                .font(.system(size: 24)).foregroundColor(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.white.opacity(0.15))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                // 左：相册（打开选样片），已选样片时右上角显示 × 一键移除
+                VStack {
+                    ZStack(alignment: .topTrailing) {
+                        PhotosPicker(selection: $photoItem, matching: .images) {
+                            if let thumb = vm.overlayImage {
+                                Image(uiImage: thumb).resizable().scaledToFill()
+                                    .frame(width: 44, height: 44)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            } else {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.system(size: 24)).foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.white.opacity(0.15))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
                         }
-                        Text("样片").font(.system(size: 11)).foregroundColor(.white.opacity(0.7))
+                        if vm.overlayImage != nil {
+                            Button {
+                                vm.clearOverlay()
+                                photoItem = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                                    .background(Color.black.opacity(0.6))
+                                    .clipShape(Circle())
+                            }
+                            .offset(x: 6, y: -6)
+                        }
                     }
+                    .frame(width: 44, height: 44)
+                    Text(vm.overlayImage != nil ? "移除样片" : "样片")
+                        .font(.system(size: 11)).foregroundColor(.white.opacity(0.7))
                 }
                 .onChange(of: photoItem) { newItem in
                     Task {
@@ -396,18 +426,28 @@ private struct ToolbarIcon: View {
     }
 }
 
-// MARK: - 底部功能标签
-private struct FeatureTag: View {
+// MARK: - 底部功能开关（可点击）
+private struct FeatureToggle: View {
     let icon: String
     let title: String
     let isOn: Bool
+    let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 14))
-            Text(title).font(.system(size: 10))
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon).font(.system(size: 15))
+                Text(title).font(.system(size: 10))
+            }
+            .foregroundColor(isOn ? .yellow : .white.opacity(0.55))
+            .frame(minWidth: 72)
+            .padding(.vertical, 4)
+            .background(isOn ? Color.yellow.opacity(0.14) : Color.white.opacity(0.06))
+            .cornerRadius(10)
         }
-        .foregroundColor(isOn ? .yellow : .white.opacity(0.5))
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn ? "已开启" : "已关闭")
     }
 }
 
