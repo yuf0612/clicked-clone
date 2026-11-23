@@ -167,8 +167,8 @@ extension CameraService: AVCaptureVideoDataOutputSampleBufferDelegate {
 
     private func mirrorImage(_ image: UIImage) -> UIImage {
         UIGraphicsImageRenderer(size: image.size).image { ctx in
-            ctx.translateBy(x: image.size.width, y: 0)
-            ctx.scaleBy(x: -1, y: 1)
+            ctx.cgContext.translateBy(x: image.size.width, y: 0)
+            ctx.cgContext.scaleBy(x: -1, y: 1)
             image.draw(in: CGRect(origin: .zero, size: image.size))
         }
     }

@@ -123,7 +123,7 @@ final class APIClient {
 
     // MARK: - 移除物体
     func removeObjects(image: UIImage, points: [CGPoint], radius: Double) async throws -> UIImage {
-        let codablePoints = points.map { CGPointCodable($0.x, $0.y) }
+        let codablePoints = points.map { CGPointCodable(Double($0.x), Double($0.y)) }
         let request = RemoveObjectRequest(
             image: encodeImage(image),
             points: codablePoints,

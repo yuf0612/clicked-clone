@@ -43,7 +43,7 @@ final class ImageProcessor {
            let composite = CIFilter(name: "CISourceOverCompositing") {
             // 用 CIColorMatrix 把效果图的 alpha 乘以 intensity
             matrix.setValue(output, forKey: kCIInputImageKey)
-            matrix.setValue(CIVector(x: 0, y: 0, z: 0, w: CGFloat(intensity), t: 0), forKey: "inputAVector")
+            matrix.setValue(CIVector(x: 0, y: 0, z: 0, w: CGFloat(intensity)), forKey: "inputAVector")
             let faded = matrix.outputImage ?? output
             // 用 source-over 把半透明效果图盖在原图上
             composite.setValue(faded, forKey: kCIInputImageKey)

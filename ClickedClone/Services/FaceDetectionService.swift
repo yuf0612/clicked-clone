@@ -75,8 +75,8 @@ final class FaceDetectionService {
         }
         return FaceResult(
             boundingBox: obs.boundingBox,
-            leftEye: left.map { CGPoint(x: $0.x, y: $0.y) },
-            rightEye: right.map { CGPoint(x: $0.x, y: $0.y) },
+            leftEye: leftEye.map { CGPoint(x: $0.x, y: $0.y) },
+            rightEye: rightEye.map { CGPoint(x: $0.x, y: $0.y) },
             nose: obs.landmarks?.nose?.normalizedPoints.first.map { CGPoint(x: $0.x, y: $0.y) },
             mouth: obs.landmarks?.outerLips?.normalizedPoints.first.map { CGPoint(x: $0.x, y: $0.y) },
             rollAngle: roll

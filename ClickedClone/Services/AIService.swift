@@ -116,11 +116,12 @@ final class AIService {
         let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
         return renderer.image { ctx in
             image.draw(in: CGRect(origin: .zero, size: image.size))
+            let r = CGFloat(radius)
             for point in points {
-                let rect = CGRect(x: point.x - radius, y: point.y - radius,
-                                  width: radius * 2, height: radius * 2)
+                let rect = CGRect(x: point.x - r, y: point.y - r,
+                                  width: r * 2, height: r * 2)
                 UIColor(white: 0.5, alpha: 0.9).setFill()
-                ctx.fill(ellipseIn: rect)
+                ctx.cgContext.fillEllipse(in: rect)
             }
         }
     }
