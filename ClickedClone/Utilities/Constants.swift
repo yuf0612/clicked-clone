@@ -8,7 +8,7 @@ import SwiftUI
 enum AppConstants {
     // App 信息
     static let appName = "ClickedClone"
-    static let appTagline = "Your Photos, But Cooler"
+    static let appTagline = "让每张照片都更出彩"
 
     // 主题色（ pink/purple 渐变，呼应 Clicked 的年轻潮流感）
     static let accentPink = Color(red: 0.98, green: 0.36, blue: 0.55)
