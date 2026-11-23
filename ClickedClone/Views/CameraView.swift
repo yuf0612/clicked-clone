@@ -11,6 +11,7 @@
 
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct CameraView: View {
     @EnvironmentObject var appState: AppState
@@ -329,19 +330,45 @@ struct CameraView: View {
 }
 
 // MARK: - 相机预览容器（用 UIViewRepresentable 桥接 AVFoundation）
+/// 用自定义 UIView 子类，在 layoutSubviews 中强制把预览层铺满，
+/// 避免 makeUIView 阶段 bounds 为 .zero 导致进入相机时黑屏。
 struct CameraPreviewContainer: UIViewRepresentable {
     let viewModel: CameraViewModel
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        let preview = viewModel.cameraService.previewLayer
-        preview.frame = view.bounds
-        view.layer.addSublayer(preview)
-        return view
+    func makeUIView(context: Context) -> CameraPreviewHostView {
+        CameraPreviewHostView(previewLayer: viewModel.cameraService.previewLayer)
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        viewModel.cameraService.previewLayer.frame = uiView.bounds
+    func updateUIView(_ uiView: CameraPreviewHostView, context: Context) {
+        uiView.syncPreviewFrame()
+    }
+}
+
+private final class CameraPreviewHostView: UIView {
+    private let layer_: AVCaptureVideoPreviewLayer
+
+    init(previewLayer: AVCaptureVideoPreviewLayer) {
+        self.layer_ = previewLayer
+        super.init(frame: .zero)
+        backgroundColor = .clear
+        layer.addSublayer(previewLayer)
+        isUserInteractionEnabled = false
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        syncPreviewFrame()
+    }
+
+    func syncPreviewFrame() {
+        let bounds = self.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer_.frame = bounds
+        CATransaction.commit()
     }
 }
 
