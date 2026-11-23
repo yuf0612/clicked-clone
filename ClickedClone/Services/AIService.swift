@@ -5,7 +5,7 @@
 //  策略：
 //   1. 优先调用 AI 后端（真实算法服务）
 //   2. 连不上后端时，用设备端 Core Image 算法降级，保证功能永不失效
-//   3. 额度管理：免费用户每天 3 次，Pro 每月 30 次
+//   3. 额度管理：全功能免费解锁版，AI 功能无限次使用
 //
 
 import SwiftUI
@@ -141,29 +141,14 @@ final class AIService {
     private let proUsageKey = "aiProUsageCount"
     private let proMonthKey = "aiProUsageMonth"
 
-    func canUseAI(isPro: Bool) -> Bool {
-        if isPro { return true }   // Pro 用户不限次数
-        let today = Calendar.current.startOfDay(for: Date())
-        let lastDate = UserDefaults.standard.object(forKey: dateKey) as? Date ?? Date.distantPast
-        if lastDate < today {
-            UserDefaults.standard.set(0, forKey: usageKey)
-            UserDefaults.standard.set(today, forKey: dateKey)
-        }
-        return UserDefaults.standard.integer(forKey: usageKey) < AppConstants.freeAIDailyLimit
-    }
+    // 全功能免费解锁：AI 永远可用，无次数限制
+    func canUseAI(isPro: Bool) -> Bool { true }
 
     func consumeAIUse(isPro: Bool) {
-        if isPro {
-            UserDefaults.standard.set(proMonthlyUsed() + 1, forKey: proUsageKey)
-        } else {
-            UserDefaults.standard.set(UserDefaults.standard.integer(forKey: usageKey) + 1, forKey: usageKey)
-        }
+        // 无需计数，保留方法仅为兼容调用签名
     }
 
-    func remainingFreeUses() -> Int {
-        let count = UserDefaults.standard.integer(forKey: usageKey)
-        return max(0, AppConstants.freeAIDailyLimit - count)
-    }
+    func remainingFreeUses() -> Int { Int.max }
 
     private func proMonthlyUsed() -> Int {
         let currentMonth = Calendar.current.component(.month, from: Date())
