@@ -19,14 +19,14 @@ settings:
       CODE_SIGN_STYLE: Automatic
       DEVELOPMENT_TEAM: ""                 # 有苹果开发者账号后填 Team ID
       TARGETED_DEVICE_FAMILY: "1"          # 1 = 仅 iPhone
-      SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+      SUPPORTED_PLATFORMS: iphoneos
       ENABLE_PREVIEWS: YES
     Release:
       SWIFT_VERSION: "5.9"
       CODE_SIGN_STYLE: Automatic
       DEVELOPMENT_TEAM: ""
       TARGETED_DEVICE_FAMILY: "1"
-      SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+      SUPPORTED_PLATFORMS: iphoneos
 
 targets:
   ClickedClone:
