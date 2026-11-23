@@ -171,7 +171,7 @@ final class AIService {
             for p in points {
                 let cx = p.x * scaleX
                 let cy = imgH - p.y * scaleY     // UIKit y 向下 → CI y 向上
-                ctx.fillEllipse(in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2))
+                ctx.cgContext.fillEllipse(in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2))
             }
         }
         guard let mask = CIImage(image: maskUIImage) else { return image }
