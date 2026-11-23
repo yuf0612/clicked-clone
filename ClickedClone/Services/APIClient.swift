@@ -46,7 +46,7 @@ final class APIClient {
         // 墙钟超时：无论底层 URLSession 是否挂起，硬上限到点立即抛错，
         // 让 AIService 走本地降级，避免界面永久停在"正在处理"。
         let urlSession = self.session
-        try await withThrowingTaskGroup(of: T.self) { group in
+        return try await withThrowingTaskGroup(of: T.self) { group in
             group.addTask {
                 // ===== 真实请求（含有限重试）=====
                 var lastError: Error?
