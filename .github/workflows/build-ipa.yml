@@ -26,16 +26,12 @@ jobs:
       - name: 检出源码
         uses: actions/checkout@v4
 
-      - name: 确认并选择 Xcode 版本
+      - name: 确认 Xcode 版本
         run: |
+          # 使用云 Mac 默认 Xcode（其 SDK 与预装模拟器运行时版本配套）
+          # 不要切换到旧版 Xcode，否则 iphonesimulator SDK 与运行时版本不匹配会导致 actool 失败
           xcodebuild -version
-          # 固定到已验证支持 iOS 17 的 Xcode（避免云 Mac 升级导致意外失败）
-          if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.2.app
-          elif [ -d "/Applications/Xcode_16.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.app
-          fi
-          xcodebuild -version
+          sudo xcode-select -p
 
       - name: 安装 XcodeGen
         run: brew install xcodegen
