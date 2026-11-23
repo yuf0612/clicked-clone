@@ -22,7 +22,7 @@ struct ProfileView: View {
                             Image(systemName: "person.circle.fill")
                                 .font(.system(size: 70))
                                 .foregroundStyle(AppConstants.brandGradient)
-                            Text("Clicked · 全功能已解锁")
+                            Text("全功能已解锁")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
                             Text("所有功能免费使用，无次数限制")
@@ -42,7 +42,7 @@ struct ProfileView: View {
                                     Spacer()
                                     Image(systemName: "chevron.right")
                                 }
-                                Text("无限引导拍摄 · 全部滤镜 · 无限美颜 · AI 风格")
+                                Text("无限引导拍摄 · 全部滤镜 · 无限美颜 · 智能风格")
                                     .font(.system(size: 12))
                                     .foregroundColor(.white.opacity(0.8))
                             }
@@ -70,7 +70,7 @@ struct ProfileView: View {
                         .padding(.horizontal)
 
                         // 关于
-                        Text("ClickedClone v1.0 · 演示工程")
+                        Text("点拍 · 版本 1.0 · 演示工程")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
                             .padding(.top, 20)
