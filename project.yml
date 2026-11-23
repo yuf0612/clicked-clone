@@ -13,8 +13,6 @@ options:
   createIntermediateGroups: true
 
 settings:
-  groups:
-    - Shared
   configs:
     Debug:
       SWIFT_VERSION: "5.9"
