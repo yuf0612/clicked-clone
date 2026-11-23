@@ -16,15 +16,28 @@ final class AIService {
     static let shared = AIService()
     private let api = APIClient.shared
 
-    // AI 风格列表（与后端支持的风格对应）
-    let availableStyles = ["None", "Film", "Retro", "Glam", "Dreamy", "Cinematic", "Vivid", "Mono"]
+    // AI 风格列表（中文显示名，与后端支持的风格一一对应）
+    let availableStyles = ["原图", "胶片", "复古", "美颜", "梦幻", "电影", "鲜艳", "黑白"]
+    static let noneStyle = "原图"
 
-    // 风格名 → 后端 style 参数
+    // 中文显示名 → 内部英文 key（用于本地预设查询）
+    private let displayToKey: [String: String] = [
+        "胶片": "Film", "复古": "Retro", "美颜": "Glam",
+        "梦幻": "Dreamy", "电影": "Cinematic",
+        "鲜艳": "Vivid", "黑白": "Mono"
+    ]
+
+    // 内部英文 key → 后端 style 参数
     private let styleMap: [String: String] = [
         "Film": "film", "Retro": "retro", "Glam": "glam",
         "Dreamy": "dreamy", "Cinematic": "cinematic",
         "Vivid": "vivid", "Mono": "mono"
     ]
+
+    /// 把内部风格 key 转成中文显示名（供会话高亮比较用）
+    func displayName(forKey key: String) -> String {
+        displayToKey.first { $0.value == key }?.key ?? key
+    }
 
     // 后端是否可用的缓存（避免每次都探测）
     private var backendAvailable: Bool?
@@ -45,11 +58,13 @@ final class AIService {
 
     // MARK: - 风格迁移（真实网络 + 本地降级）
     /// - Returns: (图片, 是否用的本地降级模式)
-    func applyStyle(_ style: String, intensity: Double = 1.0, to image: UIImage) async -> (UIImage, Bool) {
-        guard style != "None", let serverStyle = styleMap[style] else { return (image, false) }
+    func applyStyle(_ displayName: String, intensity: Double = 1.0, to image: UIImage) async -> (UIImage, Bool) {
+        guard displayName != AIService.noneStyle,
+              let key = displayToKey[displayName],
+              let serverStyle = styleMap[key] else { return (image, false) }
 
         if !AppConstants.enableLocalFallback || isBackendKnownUnavailable() {
-            return AppConstants.enableLocalFallback ? (localStyle(style, to: image), true) : (image, true)
+            return AppConstants.enableLocalFallback ? (localStyle(key, to: image), true) : (image, true)
         }
         do {
             let result = try await api.applyStyle(image: image, style: serverStyle, intensity: intensity)
@@ -58,7 +73,7 @@ final class AIService {
         } catch {
             markBackendUnavailable()
             if AppConstants.enableLocalFallback {
-                return (localStyle(style, to: image), true)
+                return (localStyle(key, to: image), true)
             }
             return (image, true)
         }
@@ -116,13 +131,13 @@ final class AIService {
     private func localStyle(_ style: String, to image: UIImage) -> UIImage {
         let presetName: String
         switch style {
-        case "Film": presetName = "Fuji Chrome"
-        case "Retro": presetName = "VHS"
-        case "Glam": presetName = "Soft Luxury"
-        case "Dreamy": presetName = "Airy"
-        case "Cinematic": presetName = "Teal & Orange"
-        case "Vivid": presetName = "Velvia"
-        case "Mono": presetName = "Noir"
+        case "Film": presetName = "富士鲜艳"
+        case "Retro": presetName = "录像带"
+        case "Glam": presetName = "柔和奢华"
+        case "Dreamy": presetName = "轻盈"
+        case "Cinematic": presetName = "青橙电影"
+        case "Vivid": presetName = "浓郁反转"
+        case "Mono": presetName = "黑白经典"
         default: return image
         }
         guard let preset = PresetData.preset(named: presetName) else { return image }
@@ -134,21 +149,51 @@ final class AIService {
         return result
     }
 
-    /// 本地移除物体：用色块覆盖模拟（效果不如后端 inpaint，但可用）
+    /// 本地场景修复：内容感知填充（无后端时用设备端算法剔除物体、自动修复背景）
+    ///
+    /// 原理：把用户点选位置画成圆形蒙版，对整图做大半径高斯模糊得到"周围场景颜色场"，
+    /// 再用 CIBlendWithMask 只把蒙版区域替换为模糊后的周围像素，实现物体被抹除、
+    /// 背景由四周纹理自然填充的效果。连上后端时会改用更精确的 OpenCV Telea inpaint。
     private func localRemoveObjects(in image: UIImage, at points: [CGPoint], radius: Double) -> UIImage {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = image.scale
-        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
-        return renderer.image { ctx in
-            image.draw(in: CGRect(origin: .zero, size: image.size))
-            let r = CGFloat(radius)
-            for point in points {
-                let rect = CGRect(x: point.x - r, y: point.y - r,
-                                  width: r * 2, height: r * 2)
-                UIColor(white: 0.5, alpha: 0.9).setFill()
-                ctx.cgContext.fillEllipse(in: rect)
+        guard let ciSource = CIImage(image: image.fixedOrientation) else { return image }
+        let extent = ciSource.extent
+        let imgW = extent.width, imgH = extent.height
+        let scaleX = imgW / image.size.width
+        let scaleY = imgH / image.size.height
+        let r = CGFloat(radius) * min(scaleX, scaleY) * 1.15   // 略放大，覆盖物体边缘
+
+        // 1) 画蒙版：黑底 + 白色实心圆（Core Image 坐标系原点在左下，需翻转 y）
+        let maskRenderer = UIGraphicsImageRenderer(size: CGSize(width: imgW, height: imgH))
+        let maskUIImage = maskRenderer.image { ctx in
+            UIColor.black.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: imgW, height: imgH))
+            UIColor.white.setFill()
+            for p in points {
+                let cx = p.x * scaleX
+                let cy = imgH - p.y * scaleY     // UIKit y 向下 → CI y 向上
+                ctx.fillEllipse(in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2))
             }
         }
+        guard let mask = CIImage(image: maskUIImage) else { return image }
+
+        // 2) 周围场景颜色场：大半径模糊（半径约为标记半径的 2.2 倍，保证纹理来自物体四周）
+        let blurRadius = max(18, r * 2.2)
+        let blurred = ciSource.clampedToExtent()
+            .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: blurRadius])
+            .cropped(to: extent)
+
+        // 3) 蒙版区域用模糊场填充，其余保留原图；再做一次羽化过渡让边界自然
+        let softMask = mask.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: max(2, r * 0.18)])
+        let filled = blurred.applyingFilter("CIBlendWithMask", parameters: [
+            kCIInputImageKey: blurred,
+            kCIInputBackgroundImageKey: ciSource,
+            kCIInputMaskImageKey: softMask
+        ])
+
+        // 4) 渲染输出
+        let context = CIContext(options: nil)
+        guard let cg = context.createCGImage(filled, from: extent) else { return image }
+        return UIImage(cgImage: cg, scale: image.scale, orientation: .up)
     }
 
     /// 本地场景建议：基于通用摄影规则的建议
