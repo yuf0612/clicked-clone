@@ -37,6 +37,10 @@ final class CameraViewModel: ObservableObject {
     private var autoShutterFired = false
     private var isProcessingFrame = false   // 防止帧分析重入
 
+    // 场景指导开关（开启后周期性自动分析取景画面并给出建议）
+    @Published var sceneGuideEnabled = false
+    private var sceneGuideTimer: Timer?
+
     private var cancellables = Set<AnyCancellable>()
     private var countdownTimer: Timer?
     private var lastSceneAnalysis: Date = .distantPast
@@ -123,9 +127,41 @@ final class CameraViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 场景指导开关
+    /// 开启后立即分析一次，并每 6 秒自动刷新建议；关闭时清空提示并停止定时器
+    func toggleSceneGuide() {
+        sceneGuideEnabled.toggle()
+        if sceneGuideEnabled {
+            Task { await self.runSceneAnalysis() }
+            sceneGuideTimer?.invalidate()
+            sceneGuideTimer = Timer.scheduledTimer(withTimeInterval: 6.0, repeats: true) { [weak self] _ in
+                guard let self = self, self.sceneGuideEnabled else { return }
+                Task { await self.runSceneAnalysis() }
+            }
+        } else {
+            sceneGuideTimer?.invalidate()
+            sceneGuideTimer = nil
+            hints = []
+            isAnalyzing = false
+        }
+    }
+
     // MARK: - PicScan 场景分析（用真实取景帧）
     func runSceneAnalysis() async {
-        guard let frame = latestFrame else { return }
+        guard let frame = latestFrame else {
+            // 还没有取景帧时给个提示，而不是静默无响应
+            await MainActor.run {
+                if self.hints.isEmpty {
+                    self.hints = [CaptureHint(
+                        icon: "camera.viewfinder",
+                        title: "正在准备相机",
+                        detail: "请稍等一秒，相机画面出现后即可给出建议",
+                        severity: .info
+                    )]
+                }
+            }
+            return
+        }
         await MainActor.run { isAnalyzing = true }
 
         // 用真实 AI 后端分析当前取景帧（失败自动降级到本地分析）
@@ -137,10 +173,10 @@ final class CameraViewModel: ObservableObject {
             self.isAnalyzing = false
             self.lastSceneAnalysis = analysisTime
         }
-        // 8 秒后自动隐藏；期间若重新分析过则不清空
+        // 手动分析：8 秒后自动隐藏；场景指导开关开启时保持常显（由 toggleSceneGuide 负责清空）
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
             guard let self = self else { return }
-            if self.lastSceneAnalysis == analysisTime {
+            if self.lastSceneAnalysis == analysisTime && !self.sceneGuideEnabled {
                 self.hints = []
             }
         }
@@ -159,6 +195,7 @@ final class CameraViewModel: ObservableObject {
 
     deinit {
         countdownTimer?.invalidate()
+        sceneGuideTimer?.invalidate()
         cancellables.forEach { $0.cancel() }
     }
 }
