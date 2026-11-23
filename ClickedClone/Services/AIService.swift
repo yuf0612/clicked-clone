@@ -30,16 +30,33 @@ final class AIService {
     private var backendAvailable: Bool?
     private var lastHealthCheck: Date?
 
+    /// 已知后端不可用时，60 秒内直接走本地，避免每次操作都等超时
+    private func isBackendKnownUnavailable() -> Bool {
+        guard let available = backendAvailable, !available,
+              let last = lastHealthCheck,
+              Date().timeIntervalSince(last) < 60 else { return false }
+        return true
+    }
+
+    private func markBackendUnavailable() {
+        backendAvailable = false
+        lastHealthCheck = Date()
+    }
+
     // MARK: - 风格迁移（真实网络 + 本地降级）
     /// - Returns: (图片, 是否用的本地降级模式)
     func applyStyle(_ style: String, intensity: Double = 1.0, to image: UIImage) async -> (UIImage, Bool) {
         guard style != "None", let serverStyle = styleMap[style] else { return (image, false) }
 
+        if !AppConstants.enableLocalFallback || isBackendKnownUnavailable() {
+            return AppConstants.enableLocalFallback ? (localStyle(style, to: image), true) : (image, true)
+        }
         do {
             let result = try await api.applyStyle(image: image, style: serverStyle, intensity: intensity)
+            backendAvailable = true
             return (result, false)   // 真实后端结果
         } catch {
-            // 降级到本地算法
+            markBackendUnavailable()
             if AppConstants.enableLocalFallback {
                 return (localStyle(style, to: image), true)
             }
@@ -50,10 +67,15 @@ final class AIService {
     // MARK: - 移除物体（真实网络 + 本地降级）
     func removeObjects(in image: UIImage, at points: [CGPoint], radius: Double = 30) async -> (UIImage, Bool) {
         guard !points.isEmpty else { return (image, false) }
+        if !AppConstants.enableLocalFallback || isBackendKnownUnavailable() {
+            return AppConstants.enableLocalFallback ? (localRemoveObjects(in: image, at: points, radius: radius), true) : (image, true)
+        }
         do {
             let result = try await api.removeObjects(image: image, points: points, radius: radius)
+            backendAvailable = true
             return (result, false)
         } catch {
+            markBackendUnavailable()
             if AppConstants.enableLocalFallback {
                 return (localRemoveObjects(in: image, at: points, radius: radius), true)
             }
@@ -64,10 +86,13 @@ final class AIService {
     // MARK: - 场景分析（真实网络 + 本地降级）
     func analyzeScene(image: UIImage) async -> [CaptureHint] {
         guard image.size.width > 0 else { return localSceneHints() }
+        if isBackendKnownUnavailable() { return localSceneHints() }
         do {
             let hints = try await api.analyzeScene(image: image)
+            backendAvailable = true
             return hints.isEmpty ? localSceneHints() : hints
         } catch {
+            markBackendUnavailable()
             return localSceneHints()
         }
     }
