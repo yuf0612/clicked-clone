@@ -39,10 +39,12 @@ enum AppConstants {
     /// 手机和电脑需在同一 WiFi；WiFi 变化后 IP 可能变，用 start_server.bat 查看新 IP 并更新这里。
     /// 模拟器调试可改成 http://localhost:8000。上线时换成正式域名（必须 HTTPS）。
     static let apiBaseURL = "http://192.168.0.103:8000"
-    /// 网络请求超时（秒）
-    static let apiTimeout: TimeInterval = 60
-    /// 失败重试次数
-    static let apiRetryCount = 2
+    /// 网络请求超时（秒）——连不上后端时快速失败，避免界面长期卡在"正在处理"
+    static let apiTimeout: TimeInterval = 8
+    /// 硬超时（秒）——墙钟保护，URLSession 挂起时也强制结束并走本地降级
+    static let apiHardTimeout: TimeInterval = 10
+    /// 失败重试次数——本地降级已足够可靠，不重试以免拖慢体验
+    static let apiRetryCount = 0
     /// 是否启用本地降级（后端连不上时用设备端算法兜底，保证功能可用）
     static let enableLocalFallback = true
 }
